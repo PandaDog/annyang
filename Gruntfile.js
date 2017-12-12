@@ -1,5 +1,5 @@
 module.exports = function(grunt) {
-  "use strict";
+  'use strict';
 
   // Project configuration.
   grunt.initConfig({
@@ -7,51 +7,41 @@ module.exports = function(grunt) {
     jshint: {
       all: [
         'Gruntfile.js',
-        'annyang.js',
+        'src/annyang.js',
         'sites/facebook.js',
         'sites/geektime.js',
+        'test/spec/*Spec.js'
       ],
       options: {
-        "node"      : true,
-        "browser"   : true,
-        "devel"     : false,
-        "camelcase" : true,
-        "curly"     : true,
-        "latedef"   : true,
-        "unused"    : true,
-        "trailing"  : true,
-        "eqeqeq"    : true,
-        "eqnull"    : true,
-        "evil"      : false,
-        "forin"     : true,
-        "immed"     : true,
-        "laxbreak"  : false,
-        "newcap"    : true,
-        "noarg"     : true,
-        "noempty"   : false,
-        "nonew"     : true,
-        "onevar"    : false,
-        "plusplus"  : false,
-        "undef"     : true,
-        "sub"       : true,
-        "strict"    : true,
-        "white"     : false,
-        "indent"    : 2
+        jshintrc: true
+      }
+    },
+    'babel': {
+      options: {
+        sourceMap: true,
+        presets: ['es2015']
+      },
+      dist: {
+        files: {
+          'dist/annyang.js': 'src/annyang.js'
+        }
       }
     },
     watch: {
-      files: ['annyang.js', 'sites/facebook.js', 'sites/geektime.js', 'demo/css/main.css', '!**/node_modules/**'],
-      tasks: ['default'],
+      files: ['src/*.js', 'sites/*.js', 'demo/css/*.css', 'test/spec/*Spec.js', '!**/node_modules/**'],
+      tasks: ['default']
     },
     uglify: {
       options: {
-        preserveComments: 'some'
+        output: {
+          comments: /^\! /
+        }
       },
       all: {
         files: {
-          'annyang.min.js': ['annyang.js'],
-          'sites/facebook.min.js': ['annyang.js', 'sites/facebook.js'],
-          'sites/geektime.min.js': ['annyang.js', 'sites/geektime.js'],
+          'dist/annyang.min.js': ['dist/annyang.js'],
+          'sites/facebook.min.js': ['dist/annyang.js', 'sites/facebook.js'],
+          'sites/geektime.min.js': ['dist/annyang.js', 'sites/geektime.js']
         }
       }
     },
@@ -65,7 +55,7 @@ module.exports = function(grunt) {
           src: ['*.{png,jpg,gif}'],       // Actual patterns to match
           dest: 'demo/images'             // Destination path prefix
         }]
-      },
+      }
     },
     cssmin: {
       combine: {
@@ -77,7 +67,7 @@ module.exports = function(grunt) {
     markdox: {
       target: {
         files: [
-          {src: 'annyang.js', dest: 'docs/README.md'}
+          {src: 'src/annyang.js', dest: 'docs/README.md'}
         ]
       }
     },
@@ -91,33 +81,64 @@ module.exports = function(grunt) {
           open: 'https://localhost:8443/demo'
         }
       }
+    },
+    jasmine: {
+      browserAMD: {
+        src: ['dist/annyang.min.js'],
+        options: {
+          specs: 'test/spec/*Spec.js',
+          outfile: 'test/SpecRunner.html',
+          vendor: ['test/vendor/corti.js', 'test/init_corti.js'],
+          keepRunner: true,
+          template: require('grunt-template-jasmine-requirejs'),
+          templateOptions: {
+            requireConfig: {
+              baseUrl: '../dist/'
+            }
+          }
+        }
+      },
+      testAndCoverage: {
+        src: ['dist/annyang.min.js'],
+        options: {
+          specs: ['test/spec/*Spec.js'],
+          outfile: 'test/SpecRunner.html',
+          vendor: ['test/vendor/corti.js', 'test/init_corti.js'],
+          keepRunner: true,
+          template: require('grunt-template-jasmine-istanbul'),
+          templateOptions: {
+            coverage: 'test/coverage/coverage.json',
+            report: [
+              {
+                type: 'html',
+                options: {
+                  dir: 'test/coverage'
+                }
+              },
+              {
+                type: 'text'
+              }
+            ],
+            thresholds: {
+              statements: 80,
+              branches: 65,
+              functions: 90,
+              lines: 80
+            }
+          }
+        }
+      }
     }
   });
 
-  // Load the plugin that provides the "uglify" task.
-  grunt.loadNpmTasks('grunt-contrib-uglify');
+  // Load NPM tasks
+  require('load-grunt-tasks')(grunt, {
+    pattern: ['grunt-*', '!grunt-template-jasmine-istanbul']
+  });
 
-  // Load the plugin that provides the "jshint" task.
-  grunt.loadNpmTasks('grunt-contrib-jshint');
-
-  // Load the plugin that provides the "watch" task.
-  grunt.loadNpmTasks('grunt-contrib-watch');
-
-  // Load the plugin that provides the "cssmin" task.
-  grunt.loadNpmTasks('grunt-contrib-cssmin');
-
-  // Load the plugin that provides the "imagemin" task.
-  grunt.loadNpmTasks('grunt-contrib-imagemin');
-
-  // Load the plugin that provides the "connect" task.
-  grunt.loadNpmTasks('grunt-contrib-connect');
-
-  // Load the plugin that provides the "markdox" task.
-  grunt.loadNpmTasks('grunt-markdox');
-
-  // Default task(s).
-  grunt.registerTask('default', ['jshint', 'uglify', 'cssmin', 'markdox']);
-
+  // Register tasks
+  grunt.registerTask('default', ['jshint', 'babel', 'uglify', 'cssmin', 'jasmine', 'markdox']);
   grunt.registerTask('dev', ['default', 'connect', 'watch']);
+  grunt.registerTask('test', ['jshint', 'babel', 'jasmine']);
 
 };

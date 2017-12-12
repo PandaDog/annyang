@@ -1,6 +1,6 @@
 
 
-<!-- Start annyang.js -->
+<!-- Start src/annyang.js -->
 
 # Quick Tutorial, Intro and Demos
 
@@ -33,7 +33,7 @@ See: [Commands Object](#commands-object)
 ### Params:
 
 * **Object** *commands* - Commands that annyang should listen to
-* **Boolean** *[resetCommands=true]* - Remove all commands before initializing?
+* **boolean** *[resetCommands=true]* - Remove all commands before initializing?
 
 ## start([options])
 
@@ -41,8 +41,10 @@ Start listening.
 It's a good idea to call this after adding some commands first, but not mandatory.
 
 Receives an optional options object which supports the following options:
-- `autoRestart` (Boolean, default: true) Should annyang restart itself if it is closed indirectly, because of silence or window conflicts?
-- `continuous`  (Boolean, default: undefined) Allow forcing continuous mode on or off. Annyang is pretty smart about this, so only set this if you know what you're doing.
+
+- `autoRestart`  (boolean, default: true) Should annyang restart itself if it is closed indirectly, because of silence or window conflicts?
+- `continuous`   (boolean) Allow forcing continuous mode on or off. Annyang is pretty smart about this, so only set this if you know what you're doing.
+- `paused`       (boolean, default: true) Start annyang in paused mode.
 
 #### Examples:
 ````javascript
@@ -62,7 +64,7 @@ Stop listening, and turn off mic.
 
 Alternatively, to only temporarily pause annyang responding to commands without stopping the SpeechRecognition engine or closing the mic, use pause() instead.
 
-See: [pause()](#pause) 
+See: [pause()](#pause)
 
 ## pause()
 
@@ -70,7 +72,7 @@ Pause listening. annyang will stop responding to commands (until the resume or s
 
 Alternatively, to stop the SpeechRecognition engine and close the mic, use abort() instead.
 
-See: [abort()](#abort) 
+See: [abort()](#abort)
 
 ## resume()
 
@@ -83,13 +85,13 @@ Turn on output of debug messages to the console. Ugly, but super-handy!
 
 ### Params:
 
-* **Boolean** *[newState=true]* - Turn on/off debug messages
+* **boolean** *[newState=true]* - Turn on/off debug messages
 
 ## setLanguage(language)
 
 Set the language the user will speak in. If this method is not called, defaults to 'en-US'.
 
-See: [Languages](#languages)
+See: [Languages](https://github.com/TalAter/annyang/blob/master/docs/FAQ.md#what-languages-are-supported)
 
 ### Params:
 
@@ -145,28 +147,34 @@ annyang.removeCommands(['howdy', 'hi']);
 Add a callback function to be called in case one of the following events happens:
 
 * `start` - Fired as soon as the browser's Speech Recognition engine starts listening
+* `soundstart` - Fired as soon as any sound (possibly speech) has been detected.
+    This will fire once per Speech Recognition starting. See https://is.gd/annyang_sound_start
 * `error` - Fired when the browser's Speech Recogntion engine returns an error, this generic error callback will be followed by more accurate error callbacks (both will fire if both are defined)
+    Callback function will be called with the error event as the first argument
 * `errorNetwork` - Fired when Speech Recognition fails because of a network error
+    Callback function will be called with the error event as the first argument
 * `errorPermissionBlocked` - Fired when the browser blocks the permission request to use Speech Recognition.
+    Callback function will be called with the error event as the first argument
 * `errorPermissionDenied` - Fired when the user blocks the permission request to use Speech Recognition.
+    Callback function will be called with the error event as the first argument
 * `end` - Fired when the browser's Speech Recognition engine stops
 * `result` - Fired as soon as some speech was identified. This generic callback will be followed by either the `resultMatch` or `resultNoMatch` callbacks.
-    Callback functions registered to this event will include an array of possible phrases the user said as the first argument
+    Callback functions for to this event will be called with an array of possible phrases the user said as the first argument
 * `resultMatch` - Fired when annyang was able to match between what the user said and a registered command
-    Callback functions registered to this event will include three arguments in the following order:
+    Callback functions for this event will be called with three arguments in the following order:
       * The phrase the user said that matched a command
       * The command that was matched
-      * An array of possible alternative phrases the user might've said
-* `resultNoMatch` - Fired when what the user said didn't match any of the registered commands
-    Callback functions registered to this event will include an array of possible phrases the user might've said as the first argument
+      * An array of possible alternative phrases the user might have said
+* `resultNoMatch` - Fired when what the user said didn't match any of the registered commands.
+    Callback functions for this event will be called with an array of possible phrases the user might've said as the first argument
 
 #### Examples:
 ````javascript
-annyang.addCallback('error', function () {
+annyang.addCallback('error', function() {
   $('.myErrorText').text('There was an error!');
 });
 
-annyang.addCallback('resultMatch', function (userSaid, commandText, phrases) {
+annyang.addCallback('resultMatch', function(userSaid, commandText, phrases) {
   console.log(userSaid); // sample output: 'hello'
   console.log(commandText); // sample output: 'hello (there)'
   console.log(phrases); // sample output: ['hello', 'halo', 'yellow', 'polo', 'hello kitty']
@@ -181,6 +189,86 @@ annyang.addCallback('errorNetwork', notConnected, this);
 * **String** *type* - Name of event that will trigger this callback
 * **Function** *callback* - The function to call when event is triggered
 * **Object** *[context]* - Optional context for the callback function
+
+## removeCallback(type, callback)
+
+Remove callbacks from events.
+
+- Pass an event name and a callback command to remove that callback command from that event type.
+- Pass just an event name to remove all callback commands from that event type.
+- Pass undefined as event name and a callback command to remove that callback command from all event types.
+- Pass no params to remove all callback commands from all event types.
+
+#### Examples:
+````javascript
+annyang.addCallback('start', myFunction1);
+annyang.addCallback('start', myFunction2);
+annyang.addCallback('end', myFunction1);
+annyang.addCallback('end', myFunction2);
+
+// Remove all callbacks from all events:
+annyang.removeCallback();
+
+// Remove all callbacks attached to end event:
+annyang.removeCallback('end');
+
+// Remove myFunction2 from being called on start:
+annyang.removeCallback('start', myFunction2);
+
+// Remove myFunction1 from being called on all events:
+annyang.removeCallback(undefined, myFunction1);
+````
+
+### Params:
+
+* *type* Name of event type to remove callback from
+* *callback* The callback function to remove
+
+### Return:
+
+* undefined
+
+## isListening()
+
+Returns true if speech recognition is currently on.
+Returns false if speech recognition is off or annyang is paused.
+
+### Return:
+
+* boolean true = SpeechRecognition is on and annyang is listening
+
+## getSpeechRecognizer()
+
+Returns the instance of the browser's SpeechRecognition object used by annyang.
+Useful in case you want direct access to the browser's Speech Recognition engine.
+
+### Return:
+
+* SpeechRecognition The browser's Speech Recognizer currently used by annyang
+
+## trigger(string|array)
+
+Simulate speech being recognized. This will trigger the same events and behavior as when the Speech Recognition
+detects speech.
+
+Can accept either a string containing a single sentence, or an array containing multiple sentences to be checked
+in order until one of them matches a command (similar to the way Speech Recognition Alternatives are parsed)
+
+#### Examples:
+````javascript
+annyang.trigger('Time for some thrilling heroics');
+annyang.trigger(
+    ['Time for some thrilling heroics', 'Time for some thrilling aerobics']
+  );
+````
+
+### Params:
+
+* *string|array* sentences A sentence as a string or an array of strings of possible sentences
+
+### Return:
+
+* undefined
 
 # Good to Know
 
@@ -200,7 +288,7 @@ annyang understands commands with `named variables`, `splats`, and `optional wor
 var commands = {
   // annyang will capture anything after a splat (*) and pass it to the function.
   // e.g. saying "Show me Batman and Robin" will call showFlickr('Batman and Robin');
-  'show me *term': showFlickr,
+  'show me *tag': showFlickr,
 
   // A named variable is a one word variable, that can fit anywhere in your command.
   // e.g. saying "calculate October stats" will call calculateStats('October');
@@ -211,7 +299,7 @@ var commands = {
   'say hello (to my little) friend': greeting
 };
 
-var showFlickr = function(term) {
+var showFlickr = function(tag) {
   var url = 'http://api.flickr.com/services/rest/?tags='+tag;
   $.getJSON(url);
 }
@@ -235,114 +323,14 @@ This is done by passing an object containing two properties: `regexp`, and
 
 #### Examples:
 ````javascript
-// Both of these commands will do exactly the same thing
+var calculateFunction = function(month) { console.log(month); }
 var commands = {
+  // This example will accept any word as the "month"
   'calculate :month stats': calculateFunction,
-  'calculate month stats': {'regexp': /^calculate (\w*) stats$/, 'callback': calculateFunction}
+  // This example will only accept months which are at the start of a quarter
+  'calculate :quarter stats': {'regexp': /^calculate (January|April|July|October) stats$/, 'callback': calculateFunction}
 }
-````
+ ````
 
-## Languages
-
-While there isn't an official list of supported languages (cultures? locales?), here is a list based on [anecdotal evidence](http://stackoverflow.com/a/14302134/338039).
-
-* Afrikaans `af`
-* Basque `eu`
-* Bulgarian `bg`
-* Catalan `ca`
-* Arabic (Egypt) `ar-EG`
-* Arabic (Jordan) `ar-JO`
-* Arabic (Kuwait) `ar-KW`
-* Arabic (Lebanon) `ar-LB`
-* Arabic (Qatar) `ar-QA`
-* Arabic (UAE) `ar-AE`
-* Arabic (Morocco) `ar-MA`
-* Arabic (Iraq) `ar-IQ`
-* Arabic (Algeria) `ar-DZ`
-* Arabic (Bahrain) `ar-BH`
-* Arabic (Lybia) `ar-LY`
-* Arabic (Oman) `ar-OM`
-* Arabic (Saudi Arabia) `ar-SA`
-* Arabic (Tunisia) `ar-TN`
-* Arabic (Yemen) `ar-YE`
-* Czech `cs`
-* Dutch `nl-NL`
-* English (Australia) `en-AU`
-* English (Canada) `en-CA`
-* English (India) `en-IN`
-* English (New Zealand) `en-NZ`
-* English (South Africa) `en-ZA`
-* English(UK) `en-GB`
-* English(US) `en-US`
-* Finnish `fi`
-* French `fr-FR`
-* Galician `gl`
-* German `de-DE`
-* Hebrew `he`
-* Hungarian `hu`
-* Icelandic `is`
-* Italian `it-IT`
-* Indonesian `id`
-* Japanese `ja`
-* Korean `ko`
-* Latin `la`
-* Mandarin Chinese `zh-CN`
-* Traditional Taiwan `zh-TW`
-* Simplified China zh-CN `?`
-* Simplified Hong Kong `zh-HK`
-* Yue Chinese (Traditional Hong Kong) `zh-yue`
-* Malaysian `ms-MY`
-* Norwegian `no-NO`
-* Polish `pl`
-* Pig Latin `xx-piglatin`
-* Portuguese `pt-PT`
-* Portuguese (Brasil) `pt-BR`
-* Romanian `ro-RO`
-* Russian `ru`
-* Serbian `sr-SP`
-* Slovak `sk`
-* Spanish (Argentina) `es-AR`
-* Spanish (Bolivia) `es-BO`
-* Spanish (Chile) `es-CL`
-* Spanish (Colombia) `es-CO`
-* Spanish (Costa Rica) `es-CR`
-* Spanish (Dominican Republic) `es-DO`
-* Spanish (Ecuador) `es-EC`
-* Spanish (El Salvador) `es-SV`
-* Spanish (Guatemala) `es-GT`
-* Spanish (Honduras) `es-HN`
-* Spanish (Mexico) `es-MX`
-* Spanish (Nicaragua) `es-NI`
-* Spanish (Panama) `es-PA`
-* Spanish (Paraguay) `es-PY`
-* Spanish (Peru) `es-PE`
-* Spanish (Puerto Rico) `es-PR`
-* Spanish (Spain) `es-ES`
-* Spanish (US) `es-US`
-* Spanish (Uruguay) `es-UY`
-* Spanish (Venezuela) `es-VE`
-* Swedish `sv-SE`
-* Turkish `tr`
-* Zulu `zu`
-
-## Developing
-
-Prerequisities: node.js
-
-First, install dependencies in your local annyang copy:
-
-    npm install
-
-Make sure to run the default grunt task after each change to annyang.js. This can also be done automatically by running:
-
-    grunt watch
-
-You can also run a local server for testing your work with:
-
-    grunt dev
-
-Point your browser to `https://localhost:8443/demo/` to see the demo page.
-Since it's using self-signed certificate, you might need to click *"Proceed Anyway"*.
-
-<!-- End annyang.js -->
+<!-- End src/annyang.js -->
 
